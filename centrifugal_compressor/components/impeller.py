@@ -170,9 +170,9 @@ class Impeller:
         loss_model: Loss model ('schiffmann', 'oh', 'zhang_set1', etc.)
     
     Attributes:
-        in2: Impeller inlet state (Station 2)
-        in3: Throat state (Station 3)
-        out: Impeller outlet state (Station 4)
+        inlet: Impeller inlet state (Station 2)
+        throat: Throat state (Station 3)
+        outlet: Impeller outlet state (Station 4)
         losses: Loss breakdown
         dh0s: Isentropic enthalpy rise (J/kg)
         eff: Total-to-total efficiency
@@ -185,9 +185,9 @@ class Impeller:
     loss_model: str = 'schiffmann'
     
     # Thermodynamic states
-    in2: ImpellerState = field(init=False)
-    in3: ImpellerState = field(default_factory=ImpellerState)
-    out: ImpellerState = field(default_factory=ImpellerState)
+    inlet: ImpellerState = field(init=False)
+    throat: ImpellerState = field(default_factory=ImpellerState)
+    outlet: ImpellerState = field(default_factory=ImpellerState)
     
     # Losses
     losses: ImpellerLosses = field(default_factory=ImpellerLosses)
@@ -223,10 +223,10 @@ class Impeller:
         self._loss_calculator = LossCalculator(self.loss_model)
         
         # Copy inducer outlet as impeller inlet
-        self.in2 = ImpellerState.from_state(ind.out)
+        self.inlet = ImpellerState.from_state(ind.outlet)
         
         # Run calculation
-        if self.out.is_not_set:
+        if self.outlet.is_not_set:
             try:
                 self.calculate(geom, op)
             except ThermoException:
@@ -257,7 +257,7 @@ class Impeller:
         # Step 2: Calculate throat and check for choke
         self._calculate_throat(geom, op)
         
-        if self.in3.m_rels >= 0.99:
+        if self.throat.m_rels >= 0.99:
             self.choke_flag = True
             return
         
@@ -288,20 +288,20 @@ class Impeller:
         - Flow angles: β2 (relative)
         - Mach numbers
         """
-        in2 = self.in2
+        inlet = self.inlet
         
         # ════════════════════════════════════════════════════════════════
         # ABSOLUTE FLOW ANGLE (from geometry specification)
         # ════════════════════════════════════════════════════════════════
         alpha2 = geom.alpha2  # Absolute flow angle at inlet (degrees)
-        in2.alpha = alpha2
+        inlet.alpha = alpha2
         
         # ════════════════════════════════════════════════════════════════
         # ABSOLUTE VELOCITY COMPONENTS (decomposed using alpha2)
         # ════════════════════════════════════════════════════════════════
         # α2 = arctan(v_t / v_m)
-        v2_t = in2.v * sind(alpha2)  # Tangential component (swirl)
-        v2_m = in2.v * cosd(alpha2)  # Meridional component (axial)
+        v2_t = inlet.v * sind(alpha2)  # Tangential component (swirl)
+        v2_m = inlet.v * cosd(alpha2)  # Meridional component (axial)
         
         # ════════════════════════════════════════════════════════════════
         # SHROUD (TIP) - Station 2s
@@ -331,23 +331,23 @@ class Impeller:
         # STORE RESULTS IN STATE (RMS values + shroud/hub)
         # ════════════════════════════════════════════════════════════════
         # Main (RMS) values
-        in2.u = u2
-        in2.v_m = v2_m
-        in2.v_t = v2_t
-        in2.w = w2
-        in2.w_m = v2_m  # Meridional component same in relative frame
-        in2.w_t = w2t   # Tangential component in relative frame
-        in2.beta = beta2
+        inlet.u = u2
+        inlet.v_m = v2_m
+        inlet.v_t = v2_t
+        inlet.w = w2
+        inlet.w_m = v2_m  # Meridional component same in relative frame
+        inlet.w_t = w2t   # Tangential component in relative frame
+        inlet.beta = beta2
         
         # Shroud and hub values (for loss calculations and choke check)
-        in2.ws = w2_s   # Relative velocity at shroud (critical for choke)
-        in2.wh = w2_h   # Relative velocity at hub
+        inlet.ws = w2_s   # Relative velocity at shroud (critical for choke)
+        inlet.wh = w2_h   # Relative velocity at hub
         
         # ════════════════════════════════════════════════════════════════
         # RELATIVE FRAME THERMODYNAMICS (using RMS velocity)
         # ════════════════════════════════════════════════════════════════
         try:
-            in2.relative = total_from_static(in2.static, w2)
+            inlet.relative = total_from_static(inlet.static, w2)
         except Exception as e:
             self.wet = True
             return
@@ -355,9 +355,9 @@ class Impeller:
         # ════════════════════════════════════════════════════════════════
         # MACH NUMBERS
         # ════════════════════════════════════════════════════════════════
-        in2.m_rel = w2 / in2.static.A       # Relative Mach (RMS)
-        in2.m_rels = w2_s / in2.static.A    # Relative Mach at shroud (for choke)
-        in2.m_abs = in2.v / in2.static.A    # Absolute Mach
+        inlet.m_rel = w2 / inlet.static.A       # Relative Mach (RMS)
+        inlet.m_rels = w2_s / inlet.static.A    # Relative Mach at shroud (for choke)
+        inlet.m_abs = inlet.v / inlet.static.A    # Absolute Mach
 
         
     # ========================================================================
@@ -389,8 +389,8 @@ class Impeller:
             geom: Geometry definition
             op: Operating conditions
         """
-        in2 = self.in2
-        in3 = self.in3
+        inlet = self.inlet
+        throat = self.throat
         
         # ════════════════════════════════════════════════════════════════
         # STEP 1: Calculate incidence loss (Stanitz-Galvas)
@@ -412,18 +412,18 @@ class Impeller:
             'area_ratio': geom.A_x / geom.A_y,
             
             # Inlet velocities
-            'beta_flow_inlet': in2.beta,
-            'v_inlet': in2.v,
-            'v_m_inlet': in2.v_m,
-            'v_t_inlet': in2.v_t,
+            'beta_flow_inlet': inlet.beta,
+            'v_inlet': inlet.v,
+            'v_m_inlet': inlet.v_m,
+            'v_t_inlet': inlet.v_t,
             
             # Inlet thermodynamics
-            'rho_inlet': in2.static.D,
-            'mu_inlet': in2.static.V,
-            'P_inlet_static': in2.static.P,
-            'T_inlet_static': in2.static.T,
-            'P_inlet_total': in2.total.P,
-            'T_inlet_total': in2.total.T,
+            'rho_inlet': inlet.static.D,
+            'mu_inlet': inlet.static.V,
+            'P_inlet_static': inlet.static.P,
+            'T_inlet_static': inlet.static.T,
+            'P_inlet_total': inlet.total.P,
+            'T_inlet_total': inlet.total.T,
         }
 
         # CALL FLEXIBLE LOSS MODEL
@@ -448,8 +448,8 @@ class Impeller:
             # Calculate entropy rise
             rel3_with_loss = op.fluid.thermo_prop(
                 'HS',
-                in2.relative.H - dh_incidence,
-                in2.relative.S
+                inlet.relative.H - dh_incidence,
+                inlet.relative.S
             )
             
         except ThermoException as e:
@@ -458,7 +458,7 @@ class Impeller:
             return
         
         # Store relative frame state (at constant relative enthalpy)
-        in3.relative = op.fluid.thermo_prop('PH',rel3_with_loss.P, in2.relative.H)
+        throat.relative = op.fluid.thermo_prop('PH',rel3_with_loss.P, inlet.relative.H)
         
         # ════════════════════════════════════════════════════════════════
         # STEP 4: Solve for throat velocity from continuity
@@ -477,7 +477,7 @@ class Impeller:
             """
             try:
                 # Static state from relative frame total
-                stat3 = static_from_total(in2.relative, w3)
+                stat3 = static_from_total(inlet.relative, w3)
                 
                 # Mass flow at throat
                 mass_flow_calc = geom.A_y * w3 * stat3.D
@@ -489,7 +489,7 @@ class Impeller:
                 return 1e4  # Penalize invalid solutions
         
         # Initial guess: 65% of acoustic velocity
-        w3_guess = 0.65 * in2.relative.A
+        w3_guess = 0.65 * inlet.relative.A
         
         # Solve for throat velocity
         sol = optimize.root(throat_continuity, x0=w3_guess)
@@ -504,11 +504,11 @@ class Impeller:
         # STEP 5: Calculate throat thermodynamic states
         # ════════════════════════════════════════════════════════════════
         # Static state in relative frame
-        in3.static = static_from_total(in2.relative, w3_throat)
+        throat.static = static_from_total(inlet.relative, w3_throat)
         
         # Absolute velocity at throat (accounting for area change)
         # Continuity in absolute frame: ρ * A * v_m = constant
-        v3_m = in2.v_m * (geom.A_x / geom.A_y)
+        v3_m = inlet.v_m * (geom.A_x / geom.A_y)
         
         # Assume flow angle constant through throat region
         if abs(cosd(geom.alpha2)) > 1e-6:
@@ -517,20 +517,20 @@ class Impeller:
             v3 = v3_m
         
         # Absolute frame total state
-        in3.total = total_from_static(in3.static, v3)
+        throat.total = total_from_static(throat.static, v3)
         
         # ════════════════════════════════════════════════════════════════
         # STEP 6: Store throat velocities
         # ════════════════════════════════════════════════════════════════
-        in3.w = w3_throat        # Relative velocity magnitude
-        in3.v = v3               # Absolute velocity magnitude
-        in3.v_m = v3_m           # Meridional component
+        throat.w = w3_throat        # Relative velocity magnitude
+        throat.v = v3               # Absolute velocity magnitude
+        throat.v_m = v3_m           # Meridional component
         
         # ════════════════════════════════════════════════════════════════
         # STEP 7: Calculate Mach numbers
         # ════════════════════════════════════════════════════════════════
-        in3.m_rel = w3_throat / in3.static.A    # Relative Mach at throat
-        in3.m_abs = v3 / in3.static.A           # Absolute Mach
+        throat.m_rel = w3_throat / throat.static.A    # Relative Mach at throat
+        throat.m_abs = v3 / throat.static.A           # Absolute Mach
 
 
     # ========================================================================
@@ -554,16 +554,16 @@ class Impeller:
         - Adapts to whatever the selected model returns
         - Uses LossCalculator metadata to classify losses
         """
-        in2 = self.in2
-        out = self.out
+        inlet = self.inlet
+        outlet = self.outlet
         
         # ════════════════════════════════════════════════════════════════
         # STEP 1: Isentropic reference state
         # ════════════════════════════════════════════════════════════════
-        h4_rel_isen = 0.5 * (op.omega * geom.r4)**2 - 0.5 * in2.u**2 + in2.relative.H
+        h4_rel_isen = 0.5 * (op.omega * geom.r4)**2 - 0.5 * inlet.u**2 + inlet.relative.H
         
         try:
-            tp4_rel_isen = op.fluid.thermo_prop('HS', h4_rel_isen, in2.relative.S)
+            tp4_rel_isen = op.fluid.thermo_prop('HS', h4_rel_isen, inlet.relative.S)
         except ThermoException as e:
             print(f"Isentropic state calculation failed: {e}")
             self.choke_flag = True
@@ -624,7 +624,7 @@ class Impeller:
                 err.append((beta4_calc - beta4_flow) / 60.0)
                 
                 tp4_tot = total_from_static(tp4_stat, v4)
-                enthalpy_rise = tp4_tot.H - in2.total.H
+                enthalpy_rise = tp4_tot.H - inlet.total.H
                 
                 # ════════════════════════════════════════════════════
                 # PART B: ADAPTIVE LOSS CALCULATION
@@ -632,7 +632,7 @@ class Impeller:
                 
                 # Prepare comprehensive inputs
                 loss_inputs = self._prepare_loss_inputs(
-                    geom, op, in2, tp4_stat, tp4_tot,
+                    geom, op, inlet, tp4_stat, tp4_tot,
                     v4, v4_m, v4_t, w4, beta4_flow, alpha4,
                     enthalpy_rise
                 )
@@ -652,16 +652,16 @@ class Impeller:
                 # ════════════════════════════════════════════════════
                 
                 # External energy balance (rothalpy)
-                err.append((dh_losses_ext_calc - dh_loss_ext) / in2.relative.H)
+                err.append((dh_losses_ext_calc - dh_loss_ext) / inlet.relative.H)
                 
                 # Internal energy balance (entropy/pressure)
                 try:
                     tp4_check = op.fluid.thermo_prop(
                         'HS',
                         h4_rel_isen - dh_losses_int_calc,
-                        in2.relative.S
+                        inlet.relative.S
                     )
-                    err.append((tp4_check.P - tp4_rel.P) / in2.relative.P)
+                    err.append((tp4_check.P - tp4_rel.P) / inlet.relative.P)
                 except:
                     err.append(0.01)  # Small residual if calc fails
                 
@@ -717,9 +717,9 @@ class Impeller:
         alpha4 = math.degrees(math.atan2(v4_t, v4_m))
         
         tp4_tot = total_from_static(tp4_stat, v4)
-        tp4_isen = op.fluid.thermo_prop('PS', tp4_tot.P, in2.total.S)
+        tp4_isen = op.fluid.thermo_prop('PS', tp4_tot.P, inlet.total.S)
 
-        enthalpy_rise = tp4_tot.H - in2.total.H
+        enthalpy_rise = tp4_tot.H - inlet.total.H
 
         # ════════════════════════════════════════════════════════════════
         # STEP 6: FINAL LOSS CALCULATION (CONVERGED VELOCITIES)
@@ -727,7 +727,7 @@ class Impeller:
         
         # Prepare inputs with final converged velocities
         final_loss_inputs = self._prepare_loss_inputs(
-            geom, op, in2, tp4_stat, tp4_tot,
+            geom, op, inlet, tp4_stat, tp4_tot,
             v4, v4_m, v4_t, w4, beta4_flow, alpha4,
             enthalpy_rise
         )
@@ -748,32 +748,32 @@ class Impeller:
         # ════════════════════════════════════════════════════════════════
         # STEP 7: STORE OUTLET STATE
         # ════════════════════════════════════════════════════════════════
-        out.total = tp4_tot
-        out.static = tp4_stat
-        out.isentropic = tp4_isen
-        out.relative = tp4_rel
+        outlet.total = tp4_tot
+        outlet.static = tp4_stat
+        outlet.isentropic = tp4_isen
+        outlet.relative = tp4_rel
         
-        out.v = v4
-        out.v_m = v4_m
-        out.v_t = v4_t
-        out.u = op.omega * geom.r4
-        out.w = w4
-        out.w_m = v4_m
-        out.w_t = op.omega * geom.r4 - v4_t
-        out.beta = beta4_flow
-        out.alpha = alpha4
-        out.A_eff = geom.A4_eff
+        outlet.v = v4
+        outlet.v_m = v4_m
+        outlet.v_t = v4_t
+        outlet.u = op.omega * geom.r4
+        outlet.w = w4
+        outlet.w_m = v4_m
+        outlet.w_t = op.omega * geom.r4 - v4_t
+        outlet.beta = beta4_flow
+        outlet.alpha = alpha4
+        outlet.A_eff = geom.A4_eff
         
-        out.m_abs = v4 / tp4_stat.A
-        out.m_abs_m = v4_m / tp4_stat.A
-        out.m_rel = w4 / tp4_stat.A
+        outlet.m_abs = v4 / tp4_stat.A
+        outlet.m_abs_m = v4_m / tp4_stat.A
+        outlet.m_rel = w4 / tp4_stat.A
         
         # Choke checks
-        if out.m_rel >= 0.99 or out.m_abs_m >= 0.99:
+        if outlet.m_rel >= 0.99 or outlet.m_abs_m >= 0.99:
             self.choke_flag = True
             return
         
-        if out.total.P <= in2.total.P:
+        if outlet.total.P <= inlet.total.P:
             self.choke_flag = True
             return
     
@@ -798,26 +798,26 @@ class Impeller:
         
         All metrics computed from converged states and final losses.
         """
-        in2 = self.in2
-        out = self.out
+        inlet = self.inlet
+        outlet = self.outlet
         
         # ════════════════════════════════════════════════════════════════
         # STEP 1: ISENTROPIC ENTHALPY RISE (ideal compression work)
         # ════════════════════════════════════════════════════════════════
         # Enthalpy rise if compression were reversible (no losses)
         # From inlet total to outlet total at constant entropy
-        self.dh0s = out.isentropic.H - in2.total.H
+        self.dh0s = outlet.isentropic.H - inlet.total.H
         
         # ════════════════════════════════════════════════════════════════
         # STEP 2: ACTUAL ENTHALPY RISE (real compression work)
         # ════════════════════════════════════════════════════════════════
-        dh0_actual = out.total.H - in2.total.H
+        dh0_actual = outlet.total.H - inlet.total.H
         
         # ════════════════════════════════════════════════════════════════
         # STEP 3: EULER WORK (theoretical work from velocity triangles)
         # ════════════════════════════════════════════════════════════════
         # From Euler turbomachine equation: dh_euler = u₄v₄ₜ - u₂v₂ₜ
-        dh_euler = out.u * out.v_t - in2.u * in2.v_t
+        dh_euler = outlet.u * outlet.v_t - inlet.u * inlet.v_t
         
         # ════════════════════════════════════════════════════════════════
         # STEP 4: TOTAL-TO-TOTAL EFFICIENCY
@@ -835,8 +835,8 @@ class Impeller:
         # η_ts = (isentropic work to static pressure) / (actual work)
         # Accounts for kinetic energy loss at outlet
         try:
-            out_isen_static = op.fluid.thermo_prop('PS', out.static.P, in2.total.S)
-            dhs = out_isen_static.H - in2.total.H
+            out_isen_static = op.fluid.thermo_prop('PS', outlet.static.P, inlet.total.S)
+            dhs = out_isen_static.H - inlet.total.H
             self.eff_ts = dhs / dh0_actual if dh0_actual > 0 else 0.0
         except ThermoException:
             self.eff_ts = math.nan
@@ -844,8 +844,8 @@ class Impeller:
         # ════════════════════════════════════════════════════════════════
         # STEP 6: PRESSURE RATIO
         # ════════════════════════════════════════════════════════════════
-        self.pr_tt = out.total.P / in2.total.P  # Total-to-total
-        self.pr_ts = out.static.P / in2.total.P  # Total-to-static
+        self.pr_tt = outlet.total.P / inlet.total.P  # Total-to-total
+        self.pr_ts = outlet.static.P / inlet.total.P  # Total-to-static
         
         # ════════════════════════════════════════════════════════════════
         # STEP 7: LOSS COEFFICIENTS
@@ -877,14 +877,14 @@ class Impeller:
         
         # De Haller number (check for excessive diffusion)
         # De Haller > 0.7 is desirable
-        self.de_haller = out.w / in2.w if in2.w > 0 else math.nan
+        self.de_haller = outlet.w / inlet.w if inlet.w > 0 else math.nan
 
 
     # ════════════════════════════════════════════════════════════════════
     # HELPER METHODS
     # ════════════════════════════════════════════════════════════════════
     def _prepare_loss_inputs(
-        self, geom, op, in2, tp4_stat, tp4_tot,
+        self, geom, op, inlet, tp4_stat, tp4_tot,
         v4, v4_m, v4_t, w4, beta4_flow, alpha4, enthalpy_rise
     ) -> dict:
         """Prepare comprehensive inputs for LossCalculator"""
@@ -893,19 +893,19 @@ class Impeller:
             'geom': geom,
             
             # States
-            'inlet_state': in2.static,
+            'inlet_state': inlet.static,
             'outlet_state': tp4_stat,
             
             # Velocities dictionary - ✅ FIXED: Use underscore naming
             'velocities': {
                 # Inlet
-                'w_in': in2.w,        # ✅ Changed from 'win'
-                'v_in': in2.v,        # ✅ Changed from 'vin'
-                'u_in': in2.u,        # ✅ Changed from 'uin'
-                'v_m_inlet': in2.v_m,
-                'v_t_in': in2.v_t,    # ✅ Changed from 'vtin'
-                'w_t_in': in2.w_t,    # ✅ Changed from 'wtin'
-                'v_m_in': in2.v_m,    # ✅ Changed from 'vmin'
+                'w_in': inlet.w,        # ✅ Changed from 'win'
+                'v_in': inlet.v,        # ✅ Changed from 'vin'
+                'u_in': inlet.u,        # ✅ Changed from 'uin'
+                'v_m_inlet': inlet.v_m,
+                'v_t_in': inlet.v_t,    # ✅ Changed from 'vtin'
+                'w_t_in': inlet.w_t,    # ✅ Changed from 'wtin'
+                'v_m_in': inlet.v_m,    # ✅ Changed from 'vmin'
                 
                 # Outlet
                 'w_out': w4,          # ✅ Changed from 'wout'
@@ -916,12 +916,12 @@ class Impeller:
                 'w_t_out': op.omega * geom.r4 - v4_t,  # ✅ Changed from 'wtout'
                 
                 # Flow angles
-                'beta_flow_inlet': in2.beta,
+                'beta_flow_inlet': inlet.beta,
                 'beta_flow_outlet': beta4_flow,
                 'alpha_out': alpha4,  # ✅ Changed from 'alphaout'
                 
                 # Throat
-                'w_th': self.in3.w if hasattr(self.in3, 'w') else in2.w * 0.9,
+                'w_th': self.throat.w if hasattr(self.throat, 'w') else inlet.w * 0.9,
             },
             
             # Operating conditions
@@ -934,7 +934,7 @@ class Impeller:
             'beta_flow': beta4_flow,
             
             # Throat state
-            'throat_state': self.in3.static if hasattr(self.in3, 'static') else None,
+            'throat_state': self.throat.static if hasattr(self.throat, 'static') else None,
         }
 
 

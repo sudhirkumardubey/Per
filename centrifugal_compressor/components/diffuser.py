@@ -74,7 +74,7 @@ class DiffuserState:
             v_m=imp_state.v_m,
             v_t=imp_state.v_t,
             alpha=imp_state.alpha,
-            mach=imp_state.v / imp_state.static.a if hasattr(imp_state.static, 'a') else math.nan
+            mach=imp_state.v / imp_state.static.A if hasattr(imp_state.static, 'A') else math.nan
         )
 
 
@@ -371,7 +371,7 @@ class VanedDiffuser:
         v_out_guess = sqrt(v_m_out_guess**2 + v_t_out_guess**2)
         
         # Check for choking
-        if v_out_guess / self.inlet.total.a > 0.99:
+        if v_out_guess / self.inlet.total.A > 0.99:
             self.choke_flag = True
             return
         
@@ -441,7 +441,7 @@ class VanedDiffuser:
             return
         
         # Refine with continuity
-        rho_out = static_out_final.rho
+        rho_out = static_out_final.D
         m_calc = rho_out * v_m_out_guess * A_out
         
         # Check mass flow error
@@ -505,7 +505,7 @@ class VanedDiffuser:
         # Skin friction loss
         L_vane = sqrt((r6 - r5)**2 + (radians((theta_in + alpha_out) / 2) * (r5 + r6) / 2)**2)
         D_h = 2 * r5 * b5 / (z / pi + 2)
-        Re = self.inlet.static.rho * v_in * D_h / self.inlet.static.mu
+        Re = self.inlet.static.D * v_in * D_h / self.inlet.static.V
         Cf = 0.04 / Re**0.16
         Y_sf = Cf * (L_vane / D_h) * 0.5 * ((v_in + v_out) / 2)**2
         
@@ -583,7 +583,7 @@ class Diffuser:
         """Auto-detect configuration and initialize appropriate diffuser(s)"""
         
         # Convert impeller outlet to diffuser inlet
-        inlet_state = DiffuserState.from_impeller_state(imp.out)
+        inlet_state = DiffuserState.from_impeller_state(imp.outlet)
         
         # Auto-detect configuration
         self.config = self._detect_configuration(geom)

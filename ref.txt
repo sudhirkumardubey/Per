@@ -1,97 +1,113 @@
-centrifugal_compressor/
-├── core/
-│   ├── geometry.py           # Geometry class (from your file)
-│   ├── thermodynamics.py     # Thermodynamic calculations
-│   ├── velocity.py           # Velocity triangle calculations
-│   └── correlations.py       # Slip, blockage, etc.
+================================================================================
+DIRECTORY STRUCTURE FOR Per PROJECT
+================================================================================
+Generated: October 8, 2025
+
+Per/
+├── .git/
+├── .gitignore
+├── .pytest_cache/
+├── LICENSE
+├── README.md
+├── ref.txt
+├── requirements.txt
+├── setup.py
+├── setup_project.py
 │
-├── losses/
-│   ├── models.py        # Loss model library
-│   └── calculator.py    # Loss integration engine
-|   |__ components.py    # Loss library
+├── centrifugal_compressor/
+│   ├── __init__.py
+│   ├── __pycache__/
+│   ├── run.py
+│   ├── run_all.py
+│   ├── run_perf.py
+│   │
+│   ├── analysis/
+│   │   ├── __init__.py
+│   │   ├── __pycache__/
+│   │   ├── constraints.py
+│   │   ├── off_design.py
+│   │   ├── performance.py
+│   │   └── surge.py
+│   │
+│   ├── components/
+│   │   ├── __init__.py
+│   │   ├── __pycache__/
+│   │   ├── diffuser.py
+│   │   ├── impeller.py
+│   │   ├── inducer.py
+│   │   └── stage.py
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── __pycache__/
+│   │   ├── correlations.py
+│   │   ├── geometry.py
+│   │   └── thermodynamics.py
+│   │
+│   ├── data/
+│   │   ├── known_compressors.yml
+│   │   └── results_summary.csv
+│   │
+│   ├── losses/
+│   │   ├── __init__.py
+│   │   ├── __pycache__/
+│   │   ├── calculator.py
+│   │   ├── components.py
+│   │   └── models.py
+│   │
+│   ├── optimization/
+│   │   ├── __init__.py
+│   │   ├── design_variables.py
+│   │   ├── multi_point.py
+│   │   ├── objectives.py
+│   │   └── optimizer.py
+│   │
+│   └── visualization/
+│       ├── __init__.py
+│       ├── export.py
+│       ├── impeller_3d.py
+│       ├── meridional.py
+│       └── performance_plots.py
 │
-├── components/
-│   ├── inducer.py           # Inducer model (adapted from your file)
-│   ├── impeller.py          # Impeller model (adapted from your file)
-│   ├── diffuser.py          # Diffuser models (adapted from your file)
-│   └── stage.py             # Complete stage assembly
+├── docs/
+│   ├── API.md
+│   ├── README.md
+│   └── THEORY.md
 │
-├── analysis/
-│   ├── performance.py       # Performance analysis
-│   ├── off_design.py        # Off-design performance
-│   └── constraints.py       # Choke/surge detection
+├── examples/
+│   ├── example_analysis.py
+│   ├── example_optimization.py
+│   └── example_visualization.py
 │
-├── optimization/
-│   ├── design_variables.py  # Variable definitions
-│   ├── objectives.py        # Objective functions
-│   ├── optimizer.py         # pymoo integration
-│   └── multi_point.py       # Multi-point optimization
-│
-├── visualization/
-│   ├── meridional.py        # 2D meridional view
-│   ├── impeller_3d.py       # 3D geometry generation
-│   ├── performance_plots.py # Performance visualization
-│   └── export.py            # STEP file export
+├── performance_output/
+│   └── (empty)
 │
 └── tests/
-    ├── test_losses.py       # Loss model validation
-    ├── test_components.py   # Component validation
-    └── test_integration.py  # Full system tests
+    ├── fixtures/
+    │   ├── __init__.py
+    │   ├── reference_values.py
+    │   └── test_data.py
+    │
+    ├── integration/
+    │   ├── __init__.py
+    │   ├── test_components.py
+    │   ├── test_optimization.py
+    │   └── test_stage.py
+    │
+    ├── unit/
+    │   ├── __init__.py
+    │   ├── __pycache__/
+    │   ├── test_calculator.py
+    │   ├── test_calculator_manual.py
+    │   ├── test_core_init.py
+    │   ├── test_correlations.py
+    │   ├── test_geometry.py
+    │   ├── test_impeller.py
+    │   ├── test_losses.py
+    │   └── test_thermodynamics.py
+    │
+    └── validation/
+        ├── __init__.py
+        ├── test_radcomp_comparison.py
+        └── test_turboflow_comparison.py
 
-
-Perfect! Here is the final corrected folder structure :[1]
-
-## Final Project Structure
-
-**centrifugal_compressor/**
-- run_all.py
-- run_stage_debug.py
-- run.py
-
-- **analysis/**
-  - __pycache__/
-  - __init__.py
-  - constraints.py
-  - off_design.py
-  - performance.py
-  - surge.py
-
-- **components/**
-  - __pycache__/
-  - __init__.py
-  - diffuser.py
-  - impeller.py
-  - inducer.py
-  - stage.py
-
-- **core/**
-  - __pycache__/
-  - __init__.py
-  - correlations.py
-  - geometry.py
-  - thermodynamics.py
-
-- **losses/**
-  - __pycache__/
-  - __init__.py
-  - calculator.py
-  - components.py
-  - models.py
-
-- **data/**
-  - known_compressors.yml
-  - results_summary.csv
-
-- **optimization/**
-  - __init__.py
-  - design_variables.py
-  - multi_point.py
-  - objectives.py
-  - optimizer.py
-
-- **visualization/**
-  - __init__.py
-
-The **losses** folder is now correctly positioned as a direct subfolder under the main centrifugal_compressor directory. This modular structure provides the flexibility needed for both analysis and GA-based optimization using pymoo for preliminary compressor design. Ready to proceed with the completed files whenever you share them.[1]
-
-[1](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/images/54668752/ff16a81c-1d60-46ba-8940-2d9f0d5362e6/image.jpg)

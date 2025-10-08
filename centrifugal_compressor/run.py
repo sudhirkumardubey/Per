@@ -17,7 +17,7 @@ Date: October 2025
 import sys
 import os
 import math
-
+import matplotlib.pyplot as plt
 
 # --------------------------------------------------------------------------- #
 # Ensure project root is in path
@@ -27,6 +27,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from centrifugal_compressor.core.geometry import Geometry, OperatingCondition
 from centrifugal_compressor.components.stage import Stage
+from centrifugal_compressor.analysis.surge import check_surge
+
+
 
 # --------------------------------------------------------------------------- #
 # Define geometry (Eckardt A-type)
@@ -85,36 +88,35 @@ geom = Geometry(
 # Define operating conditions
 # --------------------------------------------------------------------------- #
 op = OperatingCondition(
-    mass_flow=5.32,        # kg/s
+    mass_flow=4.54,        # kg/s
     omega=1466.1,          # rad/s (≈ 14,000 RPM)
     P_inlet=101325.0,      # Pa
     T_inlet=288.15,        # K
     fluid_name="Air"
 )
 
+# ---------------------------------------------------------------------------
+# Print header
+# ---------------------------------------------------------------------------
+print("\n" + "="*80)
+print("  CENTRIFUGAL COMPRESSOR STAGE - ANALYSIS WITH SURGE PREDICTION")
+print("="*80 + "\n")
+
+print("CONFIGURATION:")
+print(f"  Loss model:         schiffmann")
+print(f"  Diffuser type:      Vaneless only (r5/r4 = {geom.r5/geom.r4:.3f})")
+print(f"  Operating point:    ṁ = {op.mass_flow:.2f} kg/s, N = {op.omega*60/(2*3.14159):.0f} rpm")
+print()
+
 # --------------------------------------------------------------------------- #
 # Run the stage calculation
 # --------------------------------------------------------------------------- #
 print("\n" + "=" * 80)
-print(" CENTRIFUGAL COMPRESSOR STAGE - RUN MODE")
+print("Running stage analysis...")
 print("=" * 80 + "\n")
 
-stage = Stage(geom, op, loss_model="schiffmann") # loss models: "none", "meroni", "schiffmann", "oh", "zhang_set1", "zhang_set2", "zhang_set3"
+stage = Stage(geom, op, loss_model="meroni") # loss models: "none", "meroni", "schiffmann", "oh", "zhang_set1", "zhang_set2", "zhang_set3"
 
-# --------------------------------------------------------------------------- #
-# Display results
-# --------------------------------------------------------------------------- #
-if stage.invalid_flag:
-    print("✗ Stage calculation failed.")
-    print(f"   - Choked: {stage.choke_flag}")
-    print(f"   - Invalid: {stage.invalid_flag}")
-    sys.exit(1)
-
-print(stage.summary())
-
-print("=" * 80)
-print("✓ STAGE CALCULATION COMPLETE")
-print("=" * 80)
 
 # --------------------------------------------------------------------------- #
 # Optional: Export summary data
@@ -134,3 +136,72 @@ for k, v in results.items():
     print(f"  {k:<10} = {v:.5f}")
 
 print("\n" + "=" * 80 + "\n")
+
+
+# --------------------------------------------------------------------------- #
+# DETAILED COMPONENT BREAKDOWN (Optional)
+# --------------------------------------------------------------------------- #
+if True:  # Set to False to skip detailed output
+    print("\n" + "="*80)
+    print("  DETAILED COMPONENT ANALYSIS")
+    print("="*80 + "\n")
+    
+    # Inducer
+    if stage.inducer is not None:
+        print("─" * 80)
+        print("INDUCER:")
+        print("─" * 80)
+        print(f"  Inlet Pressure (total):     {stage.inducer.inlet.total.P/1000:.2f} kPa")
+        print(f"  Inlet Temperature (total):  {stage.inducer.inlet.total.T:.2f} K")
+        print(f"  Outlet Pressure (total):    {stage.inducer.outlet.total.P/1000:.2f} kPa")
+        print(f"  Outlet Temperature (total): {stage.inducer.outlet.total.T:.2f} K")
+        print(f"  Inlet Velocity:             {stage.inducer.inlet.v:.2f} m/s")
+        print(f"  Outlet Velocity:            {stage.inducer.outlet.v:.2f} m/s")
+        print(f"  Inlet Mach:                 {stage.inducer.inlet.m_abs:.4f}")
+        print(f"  Outlet Mach:                {stage.inducer.outlet.m_abs:.4f}")
+        # print(f"  Efficiency:                 {stage.inducer.eff*100:.2f}%")
+        print()
+    
+    # Impeller
+    print("─" * 80)
+    print("IMPELLER:")
+    print("─" * 80)
+    print(f"  Inlet Pressure (total):     {stage.impeller.inlet.total.P/1000:.2f} kPa")
+    print(f"  Inlet Temperature (total):  {stage.impeller.inlet.total.T:.2f} K")
+    print(f"  Outlet Pressure (total):    {stage.impeller.outlet.total.P/1000:.2f} kPa")
+    print(f"  Outlet Temperature (total): {stage.impeller.outlet.total.T:.2f} K")
+    print(f"  Pressure Ratio (tt):        {stage.impeller.pr_tt:.4f}")
+    print(f"  Efficiency (tt):            {stage.impeller.eff_tt*100:.2f}%")
+    print(f"  De Haller Number:           {stage.impeller.de_haller:.4f}")
+    print(f"  Inlet Relative Velocity:    {stage.impeller.inlet.w:.2f} m/s")
+    print(f"  Outlet Relative Velocity:   {stage.impeller.outlet.w:.2f} m/s")
+    print(f"  Inlet Flow Angle:           {stage.impeller.inlet.beta:.2f}°")
+    print(f"  Outlet Flow Angle:          {stage.impeller.outlet.beta:.2f}°")
+    print(f"  Inlet Blade Speed:          {stage.impeller.inlet.u:.2f} m/s")
+    print(f"  Outlet Blade Speed:         {stage.impeller.outlet.u:.2f} m/s")
+    
+    # Throat information
+    if hasattr(stage.impeller.throat, 'static') and stage.impeller.throat.static.P > 0:
+        print(f"  Throat Relative Mach:       {stage.impeller.throat.m_rel:.4f}")
+        print(f"  Throat Relative Velocity:   {stage.impeller.throat.w:.2f} m/s")
+    
+    # Loss breakdown
+    if stage.impeller.losses.breakdown:
+        print(f"\n  Loss Breakdown:")
+        for loss_name, loss_value in stage.impeller.losses.breakdown.items():
+            print(f"    {loss_name:<20}: {loss_value:>8.2f} J/kg")
+        print(f"    {'Total Losses':<20}: {stage.impeller.losses.total:>8.2f} J/kg")
+    print()
+    
+    # Diffuser
+    print("─" * 80)
+    print("DIFFUSER:")
+    print("─" * 80)
+    print(f"  Configuration:              {stage.diffuser.config}")
+    print(f"  Inlet Pressure (total):     {stage.diffuser.inlet.total.P/1000:.2f} kPa")
+    print(f"  Inlet Temperature (total):  {stage.diffuser.inlet.total.T:.2f} K")
+    print(f"  Outlet Pressure (total):    {stage.diffuser.outlet.total.P/1000:.2f} kPa")
+    print(f"  Outlet Temperature (total): {stage.diffuser.outlet.total.T:.2f} K")
+    print(f"  Pressure Recovery:          {stage.diffuser.outlet.static.P:.4f}")
+    
+    print("="*80 + "\n")

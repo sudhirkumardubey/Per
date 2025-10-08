@@ -93,8 +93,8 @@ class Inducer:
         op: Operating conditions
     
     Attributes:
-        in1: Inlet state (Station 1)
-        out: Outlet state (Station 2 - impeller inlet)
+        inlet: Inlet state (Station 1)
+        outlet: Outlet state (Station 2 - impeller inlet)
         dh0s: Isentropic enthalpy rise (J/kg)
         eff: Inducer efficiency
         choke_flag: True if flow is choked
@@ -103,8 +103,8 @@ class Inducer:
     geom: InitVar[Geometry]
     op: InitVar[OperatingCondition]
     
-    in1: InducerState = field(init=False)
-    out: InducerState = field(default_factory=InducerState)
+    inlet: InducerState = field(init=False)
+    outlet: InducerState = field(default_factory=InducerState)
     
     dh0s: float = math.nan   # Isentropic enthalpy rise (J/kg)
     eff: float = math.nan    # Efficiency
@@ -113,9 +113,9 @@ class Inducer:
     
     def __post_init__(self, geom: Geometry, op: OperatingCondition) -> None:
         """Initialize inducer and calculate if needed"""
-        self.in1 = InducerState(total=op.inlet_state)
+        self.inlet = InducerState(total=op.inlet_state)
         
-        if self.out.is_not_set:
+        if self.outlet.is_not_set:
             try:
                 self.calculate(geom, op)
             except ThermoException as e:
@@ -137,7 +137,7 @@ class Inducer:
             geom: Geometry definition
             op: Operating conditions
         """
-        in_total = self.in1.total
+        in_total = self.inlet.total
         
         # ====================================================================
         # STEP 1: Solve for inlet velocity (Station 1)
@@ -169,13 +169,13 @@ class Inducer:
         v1 = sol.x[0]
         
         # Assign inlet state
-        self.in1.v = v1
-        self.in1.A_eff = geom.A1_eff
-        self.in1.static = static_from_total(in_total, v1)
-        self.in1.m_abs = v1 / self.in1.static.A
+        self.inlet.v = v1
+        self.inlet.A_eff = geom.A1_eff
+        self.inlet.static = static_from_total(in_total, v1)
+        self.inlet.m_abs = v1 / self.inlet.static.A
         
         # Check for choke in inducer passage
-        if self.in1.m_abs * geom.A1_eff / geom.A2_eff >= 0.99:
+        if self.inlet.m_abs * geom.A1_eff / geom.A2_eff >= 0.99:
             self.choke_flag = True
             return
         
@@ -217,10 +217,10 @@ class Inducer:
             return [err_cont, err_press]
         
         # Initial guess for outlet
-        v2_guess = op.mass_flow / geom.A2_eff / self.in1.static.D
-        Re_guess = v2_guess * 2 * geom.r2s * self.in1.static.D / self.in1.static.V
+        v2_guess = op.mass_flow / geom.A2_eff / self.inlet.static.D
+        Re_guess = v2_guess * 2 * geom.r2s * self.inlet.static.D / self.inlet.static.V
         Cf_guess = moody(Re_guess, geom.rough_inducer / (2 * geom.r2s))
-        dP_guess = 4 * Cf_guess * geom.l_inducer * v2_guess**2 / (4 * geom.r2s) * self.in1.static.D
+        dP_guess = 4 * Cf_guess * geom.l_inducer * v2_guess**2 / (4 * geom.r2s) * self.inlet.static.D
         Pout_guess = in_total.P - dP_guess
         
         # Solve coupled system
@@ -235,19 +235,19 @@ class Inducer:
         # ====================================================================
         # STEP 3: Assign outlet state
         # ====================================================================
-        self.out = InducerState(
+        self.outlet = InducerState(
             total=op.fluid.thermo_prop("PH", Pout, in_total.H + self.heat / op.mass_flow),
             isentropic=op.fluid.thermo_prop("PS", Pout, in_total.S),
         )
         
-        self.out.v = v2
-        self.out.static = static_from_total(self.out.total, v2)
-        self.out.m_abs = v2 / self.out.static.A
-        self.out.A_eff = geom.A2_eff
+        self.outlet.v = v2
+        self.outlet.static = static_from_total(self.outlet.total, v2)
+        self.outlet.m_abs = v2 / self.outlet.static.A
+        self.outlet.A_eff = geom.A2_eff
         
         # Calculate performance metrics
-        self.dh0s = self.out.isentropic.H - self.in1.total.H
-        delta_h = self.out.total.H - self.in1.total.H
+        self.dh0s = self.outlet.isentropic.H - self.inlet.total.H
+        delta_h = self.outlet.total.H - self.inlet.total.H
         
         if abs(delta_h) <= 1e-6:
             self.eff = math.copysign(math.inf, self.dh0s)

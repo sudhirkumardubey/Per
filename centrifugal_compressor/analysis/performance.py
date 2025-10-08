@@ -24,7 +24,7 @@ import numpy as np
 from centrifugal_compressor.core.geometry import Geometry, OperatingCondition
 from centrifugal_compressor.core.thermodynamics import FluidState, Fluid
 from centrifugal_compressor.components.stage import Stage
-from centrifugal_compressor.analysis.surge import SurgePredictor, SurgeAnalysis
+from Archive.surge import SurgePredictor, SurgeAnalysis
 
 
 # ============================================================================
