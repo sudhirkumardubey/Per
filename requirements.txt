@@ -1,0 +1,38 @@
+# File: requirements.txt
+"""
+Dependencies for centrifugal compressor design system
+"""
+
+# Core scientific computing
+numpy>=1.24.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+
+# Thermodynamic properties
+CoolProp>=6.5.0
+
+# Optimization
+pymoo>=0.6.0
+
+# 3D visualization and CAD export
+pythreejs>=2.4.0
+cadquery>=2.3.0  # For STEP file export
+trimesh>=3.23.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+hypothesis>=6.82.0  # Property-based testing
+
+# Development
+black>=23.7.0
+flake8>=6.1.0
+mypy>=1.5.0
+
+# Documentation
+sphinx>=7.0.0
+sphinx-rtd-theme>=1.3.0
+
+# # Jupyter for examples
+# jupyterlab>=4.0.0
+# ipywidgets>=8.1.0
