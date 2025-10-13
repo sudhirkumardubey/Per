@@ -634,7 +634,7 @@ class MeroniLossModel(BaseLossModel):
     3. Blade loading: Coppage (Δh_bl = 0.05*Df²*U²)
     4. Clearance: Jansen (Δh_cl = 0.6*ε*C_2t*sqrt(...))
     5. Mixing: Johnston and Dean (Δh_mix = 1/(1+tan²(α₂))*((...))²*c₂²/2)
-    6. Disc friction: Daily and Nece (Δh_df = 0.25*c_d*U²*r₁²/ṁ)
+    6. Disc friction: Daily and Nece (Δh_df = 0.25*c_d*U3*r₁²/ṁ)
     7. Recirculation: Oh et al. (Δh_rc = 8×10⁻⁵*sinh(3.5*α₂³)*Df²*U²)
     
     Vaned diffuser losses (2 total):

@@ -240,34 +240,6 @@ class Geometry:
         return cls(**d)
 
 
-# @dataclass
-# class OperatingCondition:
-#     """Operating conditions for compressor"""
-#     mass_flow: float             # Mass flow rate (kg/s)
-#     omega: float                 # Rotational speed (rad/s)
-#     P_inlet: float               # Inlet total pressure (Pa)
-#     T_inlet: float               # Inlet total temperature (K)
-#     fluid_name: str = "Air"      # Working fluid
-    
-#     @property
-#     def rpm(self) -> float:
-#         """Rotational speed in RPM"""
-#         return self.omega * 60 / (2 * math.pi)
-    
-#     @property
-#     def n_rot(self) -> float:
-#         """Rotational speed in rad/s (alias for omega)"""
-#         return self.omega
-    
-#     @classmethod
-#     def from_rpm(cls, mass_flow: float, rpm: float, 
-#                  P_inlet: float, T_inlet: float, 
-#                  fluid_name: str = "Air") -> "OperatingCondition":
-#         """Create operating condition from RPM"""
-#         omega = rpm * 2 * math.pi / 60
-#         return cls(mass_flow, omega, P_inlet, T_inlet, fluid_name)
-
-
 # ============================================================================
 # OPERATING CONDITIONS
 # ============================================================================

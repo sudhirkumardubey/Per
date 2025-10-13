@@ -59,3 +59,22 @@ def japikse_friction(Re: float, k: float = 0.02) -> float:
     
     Cf = k * (1.8e5 / Re) ** 0.2
     return Cf
+
+
+# Calculate Geometric Parameters
+def calculate_number_of_blades(PR: float, splitter: str) -> float:
+    """
+    Calculate the number of blades based on pressure ratio and splitter type.
+    
+    Parameters:
+    - PR: Pressure ratio (dimensionless)
+    - splitter: Splitter type ("WITH" or "WITHOUT")
+    
+    Returns:
+    - Number of blades (dimensionless)
+    """
+    if splitter == "WITHOUT":
+        return 12.03 + 2.544 * PR
+    elif splitter == "WITH":
+        return -4.527 * math.exp(1.865 / PR) + 32.22
+    return 0

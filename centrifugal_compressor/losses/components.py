@@ -7,7 +7,7 @@ import math
 import numpy as np
 from typing import Dict, Any
 
-# ✅ GOOD: Import at module level (once)
+# GOOD: Import at module level (once)
 from ..core.correlations import moody, japikse_friction
 from ..core import cosd, sind, tand  # Helper functions from geometry
 
